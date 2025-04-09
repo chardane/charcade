@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>Photo Booth</title>
     <style>
       html,
@@ -40,8 +43,10 @@
         height: 100vh;
         pointer-events: none;
       }
+
       #captureBtn {
-        position: relative;
+        position: absolute; /* Changed from relative */
+        bottom: 20px; /* Fixed position from bottom */
         z-index: 10;
         background: #ff4081;
         color: white;
@@ -49,13 +54,28 @@
         padding: 1rem 2rem;
         border: none;
         border-radius: 1rem;
-        margin: 1rem;
+        margin: 0; /* Removed margin */
         cursor: pointer;
         transition: transform 0.1s ease;
+        -webkit-appearance: none; /* Disable default iOS styling */
+        appearance: none; /* Standard property */
+        transform: translateX(-50%); /* Center horizontally */
+        left: 50%; /* Center positioning */
       }
-      #captureBtn:active {
-        transform: scale(0.95);
+
+      #captureBtn.active {
+        transform: translateX(-50%) scale(0.9); /* Scale down on click */
+        box-shadow: 0px 5px 15px rgba(255, 64, 129, 0.5); /* Add shadow effect */
       }
+
+      /* Add media query for iPad screens */
+      @media only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
+        #captureBtn {
+          font-size: 3rem; /* Larger text for iPad */
+          padding: 1.5rem 3rem;
+        }
+      }
+
       #countdown {
         position: absolute;
         top: 50%;
@@ -66,18 +86,46 @@
         font-weight: bold;
         z-index: 10;
       }
+
+      #flash {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1000;
+        transition: opacity 0.1s ease-out;
+      }
+
+      #flash.active {
+        opacity: 1;
+      }
     </style>
   </head>
   <body>
     <div id="container">
       <video id="video" autoplay playsinline></video>
-      <canvas id="canvas" style="display:none;"></canvas>
+      <canvas id="canvas" style="display: none"></canvas>
       <img id="overlay" src="overlay.png" alt="Overlay" />
-      <div id="countdown" style="display:none;"></div>
+      <div id="countdown" style="display: none"></div>
       <button id="captureBtn">📸 Take Photo</button>
     </div>
 
+    <div id="flash"></div>
+
     <script>
+      const flash = document.getElementById("flash");
+
+      function triggerFlash() {
+        flash.classList.add("active");
+        setTimeout(() => {
+          flash.classList.remove("active");
+        }, 100);
+      }
+
       const video = document.getElementById("video");
       const canvas = document.getElementById("canvas");
       const button = document.getElementById("captureBtn");
@@ -112,12 +160,19 @@
           } else {
             clearInterval(interval); // Stop the countdown
             countdownDisplay.style.display = "none"; // Hide the countdown
+            triggerFlash(); // Add flash effect here
+
             callback(); // Trigger the photo-taking function
           }
         }, 1000); // Run every second
       }
 
       button.addEventListener("click", () => {
+        // Add the 'active' class to trigger animation
+        button.classList.add("active");
+        // Remove the 'active' class after animation ends
+        setTimeout(() => button.classList.remove("active"), 200);
+
         startCountdown(() => {
           const context = canvas.getContext("2d");
 
@@ -174,11 +229,10 @@
               document.body.removeChild(link);
             }, "image/png");
           };
-          
+
           overlayImage.onerror = () => {
             alert("Failed to load overlay image.");
           };
-          
         });
       });
 
