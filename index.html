@@ -45,26 +45,30 @@
       }
 
       #captureBtn {
-        position: absolute; /* Changed from relative */
-        bottom: 20px; /* Fixed position from bottom */
+        position: absolute;
+        right: 20px; /* Position on the right side */
+        top: 50%; /* Center vertically */
+        transform: translateY(-50%); /* Ensure vertical centering */
         z-index: 10;
         background: #ff4081;
         color: white;
-        font-size: 2rem;
-        padding: 1rem 2rem;
+        font-size: 2.5rem; /* Adjust size for emoji */
+        width: 70px; /* Fixed width for circular shape */
+        height: 70px; /* Fixed height for circular shape */
         border: none;
-        border-radius: 1rem;
-        margin: 0; /* Removed margin */
+        border-radius: 50%; /* Make it circular */
+        margin: 0;
         cursor: pointer;
-        transition: transform 0.1s ease;
-        -webkit-appearance: none; /* Disable default iOS styling */
-        appearance: none; /* Standard property */
-        transform: translateX(-50%); /* Center horizontally */
-        left: 50%; /* Center positioning */
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        -webkit-appearance: none;
+        appearance: none;
+        display: flex;
+        justify-content: center;
+        align-items: center;
       }
 
       #captureBtn.active {
-        transform: translateX(-50%) scale(0.9); /* Scale down on click */
+        transform: translateY(-50%) scale(0.9); /* Scale down on click */
         box-shadow: 0px 5px 15px rgba(255, 64, 129, 0.5); /* Add shadow effect */
       }
 
@@ -139,7 +143,7 @@
         <option value="user">Front Camera</option>
         <option value="environment">Back Camera</option>
       </select>
-      <button id="captureBtn">📸 Take Photo</button>
+      <button id="captureBtn">📸</button>
     </div>
 
     <div id="flash"></div>
@@ -158,7 +162,7 @@
       // Function to stop any active streams
       function stopMediaTracks(stream) {
         if (stream) {
-          stream.getTracks().forEach(track => {
+          stream.getTracks().forEach((track) => {
             track.stop();
           });
         }
@@ -173,9 +177,9 @@
           }
 
           const constraints = {
-            video: { 
-              facingMode: { exact: facingMode }
-            }
+            video: {
+              facingMode: { exact: facingMode },
+            },
           };
 
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -183,11 +187,11 @@
           currentStream = stream;
         } catch (err) {
           console.error("Error accessing camera:", err);
-          
+
           // If exact mode fails, try without 'exact' constraint
           try {
             const stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: facingMode }
+              video: { facingMode: facingMode },
             });
             video.srcObject = stream;
             currentStream = stream;
