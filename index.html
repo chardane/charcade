@@ -168,18 +168,53 @@
         }
       }
 
-      // Request camera access with specified facing mode
-      async function startCamera(facingMode = "user") {
+      // Add this function to populate camera selector with all available cameras
+      async function populateCameraSelector() {
+        try {
+          // Request permission first to ensure we get labeled devices
+          await navigator.mediaDevices.getUserMedia({ video: true });
+
+          // Get all media devices
+          const devices = await navigator.mediaDevices.enumerateDevices();
+
+          // Filter for video input devices only
+          const videoDevices = devices.filter(
+            (device) => device.kind === "videoinput"
+          );
+
+          // Clear existing options
+          cameraSelector.innerHTML = "";
+
+          // Add each camera as an option
+          videoDevices.forEach((device) => {
+            const option = document.createElement("option");
+            option.value = device.deviceId;
+            option.text =
+              device.label || `Camera (${device.deviceId.slice(0, 5)}...)`;
+            cameraSelector.appendChild(option);
+          });
+
+          // If we have cameras and none is selected yet, select the first one
+          if (videoDevices.length > 0 && !currentStream) {
+            startCamera(videoDevices[0].deviceId);
+          }
+        } catch (err) {
+          console.error("Error enumerating devices:", err);
+        }
+      }
+
+      async function startCamera(deviceId) {
         try {
           // Stop any existing stream
           if (currentStream) {
             stopMediaTracks(currentStream);
           }
 
+          // Build constraints based on what was passed
           const constraints = {
-            video: {
-              facingMode: { exact: facingMode },
-            },
+            video: deviceId
+              ? { deviceId: { exact: deviceId } }
+              : { facingMode: { exact: "user" } },
           };
 
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -188,11 +223,15 @@
         } catch (err) {
           console.error("Error accessing camera:", err);
 
-          // If exact mode fails, try without 'exact' constraint
+          // Try without 'exact' constraint as fallback
           try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: facingMode },
-            });
+            const fallbackConstraints = {
+              video: deviceId ? { deviceId: deviceId } : { facingMode: "user" },
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia(
+              fallbackConstraints
+            );
             video.srcObject = stream;
             currentStream = stream;
           } catch (fallbackErr) {
@@ -204,9 +243,16 @@
         }
       }
 
-      // Camera selector event listener
+      // Update camera selector event listener
       cameraSelector.addEventListener("change", () => {
-        startCamera(cameraSelector.value);
+        if (cameraSelector.value) {
+          startCamera(cameraSelector.value);
+        }
+      });
+
+      // Listen for device changes (when cameras are connected/disconnected)
+      navigator.mediaDevices.addEventListener("devicechange", () => {
+        populateCameraSelector();
       });
 
       function triggerFlash() {
@@ -305,8 +351,8 @@
         });
       });
 
-      // Initialize with front camera
-      startCamera("user");
+      // Initialize by populating camera selector
+      populateCameraSelector();
     </script>
   </body>
 </html>
