@@ -56,13 +56,24 @@
       #captureBtn:active {
         transform: scale(0.95);
       }
+      #countdown {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 5rem;
+        font-weight: bold;
+        z-index: 10;
+      }
     </style>
   </head>
   <body>
     <div id="container">
       <video id="video" autoplay playsinline></video>
-      <canvas id="canvas" style="display: none"></canvas>
+      <canvas id="canvas" style="display:none;"></canvas>
       <img id="overlay" src="overlay.png" alt="Overlay" />
+      <div id="countdown" style="display:none;"></div>
       <button id="captureBtn">📸 Take Photo</button>
     </div>
 
@@ -71,6 +82,7 @@
       const canvas = document.getElementById("canvas");
       const button = document.getElementById("captureBtn");
       const overlay = document.getElementById("overlay");
+      const countdownDisplay = document.getElementById("countdown");
 
       // Request camera access-- front
       async function startCamera() {
@@ -87,68 +99,87 @@
         }
       }
 
+      // Countdown function
+      function startCountdown(callback) {
+        let countdown = 3; // Start at 3 seconds
+        countdownDisplay.style.display = "block"; // Show the countdown
+        countdownDisplay.textContent = countdown;
+
+        const interval = setInterval(() => {
+          countdown -= 1; // Decrease the countdown
+          if (countdown > 0) {
+            countdownDisplay.textContent = countdown; // Update the display
+          } else {
+            clearInterval(interval); // Stop the countdown
+            countdownDisplay.style.display = "none"; // Hide the countdown
+            callback(); // Trigger the photo-taking function
+          }
+        }, 1000); // Run every second
+      }
+
       button.addEventListener("click", () => {
-        const context = canvas.getContext("2d");
+        startCountdown(() => {
+          const context = canvas.getContext("2d");
 
-        // Set canvas dimensions for vertical orientation
-        canvas.width = 2059; // Vertical width
-        canvas.height = 3088; // Vertical height
+          // Set canvas dimensions for vertical orientation
+          canvas.width = 2059; // Vertical width
+          canvas.height = 3088; // Vertical height
 
-        // Calculate aspect ratio and scaling
-        const videoAspectRatio = video.videoWidth / video.videoHeight; // Video's aspect ratio
-        const canvasAspectRatio = canvas.width / canvas.height; // Canvas's aspect ratio
+          // Calculate aspect ratio and scaling
+          const videoAspectRatio = video.videoWidth / video.videoHeight; // Video's aspect ratio
+          const canvasAspectRatio = canvas.width / canvas.height; // Canvas's aspect ratio
 
-        let drawWidth, drawHeight, offsetX, offsetY;
+          let drawWidth, drawHeight, offsetX, offsetY;
 
-        if (videoAspectRatio > canvasAspectRatio) {
-          // Video is wider than canvas, fit by height
-          drawHeight = canvas.height;
-          drawWidth = drawHeight * videoAspectRatio;
-          offsetX = -(drawWidth - canvas.width) / 2; // Center horizontally
-          offsetY = 0; // No vertical offset
-        } else {
-          // Video is taller than or equal to canvas, fit by width
-          drawWidth = canvas.width;
-          drawHeight = drawWidth / videoAspectRatio;
-          offsetX = 0; // No horizontal offset
-          offsetY = -(drawHeight - canvas.height) / 2; // Center vertically
-        }
+          if (videoAspectRatio > canvasAspectRatio) {
+            // Video is wider than canvas, fit by height
+            drawHeight = canvas.height;
+            drawWidth = drawHeight * videoAspectRatio;
+            offsetX = -(drawWidth - canvas.width) / 2; // Center horizontally
+            offsetY = 0; // No vertical offset
+          } else {
+            // Video is taller than or equal to canvas, fit by width
+            drawWidth = canvas.width;
+            drawHeight = drawWidth / videoAspectRatio;
+            offsetX = 0; // No horizontal offset
+            offsetY = -(drawHeight - canvas.height) / 2; // Center vertically
+          }
 
-        // Draw the video feed onto the canvas with proper scaling and centering
-        context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+          // Draw the video feed onto the canvas with proper scaling and centering
+          context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
 
-        // Add overlay image
-        const overlayImage = new Image();
-        overlayImage.crossOrigin = "anonymous"; // Add this line for cross-origin support
-        overlayImage.src = overlay.src;
+          // Load and draw overlay image after it's fully loaded
+          const overlayImage = new Image();
+          overlayImage.crossOrigin = "anonymous"; // Add this line for cross-origin support
+          overlayImage.src = overlay.src;
 
-        const drawAndDownload = () => {
-          context.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
+          overlayImage.onload = () => {
+            context.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
 
-          const now = new Date();
-          const yy = now.getFullYear().toString().slice(2);
-          const mm = String(now.getMonth() + 1).padStart(2, "0");
-          const dd = String(now.getDate()).padStart(2, "0");
-          const hh = String(now.getHours()).padStart(2, "0");
-          const min = String(now.getMinutes()).padStart(2, "0");
-          const filename = `photo-${yy}-${mm}-${dd}-${hh}-${min}.png`;
+            const now = new Date();
+            const yy = now.getFullYear().toString().slice(2);
+            const mm = String(now.getMonth() + 1).padStart(2, "0");
+            const dd = String(now.getDate()).padStart(2, "0");
+            const hh = String(now.getHours()).padStart(2, "0");
+            const min = String(now.getMinutes()).padStart(2, "0");
+            const filename = `photo-${yy}-${mm}-${dd}-${hh}-${min}.png`;
 
-          // Download the image
-          canvas.toBlob((blob) => {
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-          }, "image/png");
-        };
-
-        if (overlayImage.complete) {
-          drawAndDownload();
-        } else {
-          overlayImage.onload = drawAndDownload;
-        }
+            // Download the image
+            canvas.toBlob((blob) => {
+              const link = document.createElement("a");
+              link.href = URL.createObjectURL(blob);
+              link.download = filename;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }, "image/png");
+          };
+          
+          overlayImage.onerror = () => {
+            alert("Failed to load overlay image.");
+          };
+          
+        });
       });
 
       startCamera();
