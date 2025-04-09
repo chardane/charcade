@@ -1,152 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Photo Booth</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: black;
-      height: 100%;
-      overflow: hidden;
-      font-family: sans-serif;
-    }
-    #container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      align-items: center;
-    }
-    video, canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-    }
-    #overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-    }
-    #captureBtn {
-      position: relative;
-      z-index: 10;
-      background: #ff4081;
-      color: white;
-      font-size: 2rem;
-      padding: 1rem 2rem;
-      border: none;
-      border-radius: 1rem;
-      margin: 1rem;
-      cursor: pointer;
-      transition: transform 0.1s ease;
-    }
-    #captureBtn:active {
-      transform: scale(0.95);
-    }
-  </style>
-</head>
-<body>
-  <div id="container">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display: none;"></canvas>
-    <img id="overlay" src="overlay.png" alt="Overlay" />
-    <button id="captureBtn">📸 Take Photo</button>
-  </div>
-
-  <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const button = document.getElementById('captureBtn');
-    const overlay = document.getElementById('overlay');
-
-    // Request camera access
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        video.srcObject = stream;
-      } catch (err) {
-        alert('Error accessing camera: ' + err);
-        console.error(err);
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Photo Booth</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: black;
+        height: 100%;
+        overflow: hidden;
+        font-family: sans-serif;
       }
-    }
+      #container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+      }
+      video,
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+      }
+      #overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+      }
+      #captureBtn {
+        position: relative;
+        z-index: 10;
+        background: #ff4081;
+        color: white;
+        font-size: 2rem;
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 1rem;
+        margin: 1rem;
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+      #captureBtn:active {
+        transform: scale(0.95);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="canvas" style="display: none"></canvas>
+      <img id="overlay" src="overlay.png" alt="Overlay" />
+      <button id="captureBtn">📸 Take Photo</button>
+    </div>
 
-    button.addEventListener('click', () => {
-      const context = canvas.getContext('2d');
+    <script>
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const button = document.getElementById("captureBtn");
+      const overlay = document.getElementById("overlay");
 
-      // Set canvas dimensions for vertical orientation
-      canvas.width = 2059; // Vertical width
-      canvas.height = 3088; // Vertical height
-
-      // Calculate aspect ratio and scaling
-      const videoAspectRatio = video.videoWidth / video.videoHeight; // Video's aspect ratio
-      const canvasAspectRatio = canvas.width / canvas.height; // Canvas's aspect ratio
-
-      let drawWidth, drawHeight, offsetX, offsetY;
-
-      if (videoAspectRatio > canvasAspectRatio) {
-        // Video is wider than canvas, fit by height
-        drawHeight = canvas.height; 
-        drawWidth = drawHeight * videoAspectRatio; 
-        offsetX = -(drawWidth - canvas.width) / 2; // Center horizontally
-        offsetY = 0; // No vertical offset
-      } else {
-        // Video is taller than or equal to canvas, fit by width
-        drawWidth = canvas.width; 
-        drawHeight = drawWidth / videoAspectRatio; 
-        offsetX = 0; // No horizontal offset
-        offsetY = -(drawHeight - canvas.height) / 2; // Center vertically
+      // Request camera access-- front
+      async function startCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { exact: "user" } }, // Use "user" for the front camera
+          });
+          video.srcObject = stream;
+        } catch (err) {
+          console.error("Error accessing camera:", err);
+          alert(
+            "Could not access the front camera. Please ensure your browser supports this feature."
+          );
+        }
       }
 
-      // Draw the video feed onto the canvas with proper scaling and centering
-      context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+      button.addEventListener("click", () => {
+        const context = canvas.getContext("2d");
 
-      // Add overlay image
-      const overlayImage = new Image();
-      overlayImage.crossOrigin = "anonymous"; // Add this line for cross-origin support
-      overlayImage.src = overlay.src;
+        // Set canvas dimensions for vertical orientation
+        canvas.width = 2059; // Vertical width
+        canvas.height = 3088; // Vertical height
 
-      const drawAndDownload = () => {
-        context.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
+        // Calculate aspect ratio and scaling
+        const videoAspectRatio = video.videoWidth / video.videoHeight; // Video's aspect ratio
+        const canvasAspectRatio = canvas.width / canvas.height; // Canvas's aspect ratio
 
-        const now = new Date();
-        const yy = now.getFullYear().toString().slice(2);
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const hh = String(now.getHours()).padStart(2, '0');
-        const min = String(now.getMinutes()).padStart(2, '0');
-        const filename = `photo-${yy}-${mm}-${dd}-${hh}-${min}.png`;
+        let drawWidth, drawHeight, offsetX, offsetY;
 
-        // Download the image
-        canvas.toBlob((blob) => {
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.download = filename;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }, 'image/png');
-      };
+        if (videoAspectRatio > canvasAspectRatio) {
+          // Video is wider than canvas, fit by height
+          drawHeight = canvas.height;
+          drawWidth = drawHeight * videoAspectRatio;
+          offsetX = -(drawWidth - canvas.width) / 2; // Center horizontally
+          offsetY = 0; // No vertical offset
+        } else {
+          // Video is taller than or equal to canvas, fit by width
+          drawWidth = canvas.width;
+          drawHeight = drawWidth / videoAspectRatio;
+          offsetX = 0; // No horizontal offset
+          offsetY = -(drawHeight - canvas.height) / 2; // Center vertically
+        }
 
-      if (overlayImage.complete) {
-        drawAndDownload();
-      } else {
-        overlayImage.onload = drawAndDownload;
-      }
-    });
+        // Draw the video feed onto the canvas with proper scaling and centering
+        context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
 
-    startCamera();
-</script>
+        // Add overlay image
+        const overlayImage = new Image();
+        overlayImage.crossOrigin = "anonymous"; // Add this line for cross-origin support
+        overlayImage.src = overlay.src;
 
-</body>
+        const drawAndDownload = () => {
+          context.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
+
+          const now = new Date();
+          const yy = now.getFullYear().toString().slice(2);
+          const mm = String(now.getMonth() + 1).padStart(2, "0");
+          const dd = String(now.getDate()).padStart(2, "0");
+          const hh = String(now.getHours()).padStart(2, "0");
+          const min = String(now.getMinutes()).padStart(2, "0");
+          const filename = `photo-${yy}-${mm}-${dd}-${hh}-${min}.png`;
+
+          // Download the image
+          canvas.toBlob((blob) => {
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }, "image/png");
+        };
+
+        if (overlayImage.complete) {
+          drawAndDownload();
+        } else {
+          overlayImage.onload = drawAndDownload;
+        }
+      });
+
+      startCamera();
+    </script>
+  </body>
 </html>
