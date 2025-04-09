@@ -103,6 +103,30 @@
       #flash.active {
         opacity: 1;
       }
+
+      /* Camera selector styles */
+      #cameraSelector {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        background-color: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        font-size: 1rem;
+        -webkit-appearance: none;
+        appearance: none;
+        outline: none;
+        cursor: pointer;
+      }
+
+      #cameraSelector option {
+        background-color: #333;
+        color: white;
+      }
     </style>
   </head>
   <body>
@@ -111,6 +135,10 @@
       <canvas id="canvas" style="display: none"></canvas>
       <img id="overlay" src="overlay.png" alt="Overlay" />
       <div id="countdown" style="display: none"></div>
+      <select id="cameraSelector">
+        <option value="user">Front Camera</option>
+        <option value="environment">Back Camera</option>
+      </select>
       <button id="captureBtn">📸 Take Photo</button>
     </div>
 
@@ -118,33 +146,70 @@
 
     <script>
       const flash = document.getElementById("flash");
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const button = document.getElementById("captureBtn");
+      const overlay = document.getElementById("overlay");
+      const countdownDisplay = document.getElementById("countdown");
+      const cameraSelector = document.getElementById("cameraSelector");
+
+      let currentStream = null;
+
+      // Function to stop any active streams
+      function stopMediaTracks(stream) {
+        if (stream) {
+          stream.getTracks().forEach(track => {
+            track.stop();
+          });
+        }
+      }
+
+      // Request camera access with specified facing mode
+      async function startCamera(facingMode = "user") {
+        try {
+          // Stop any existing stream
+          if (currentStream) {
+            stopMediaTracks(currentStream);
+          }
+
+          const constraints = {
+            video: { 
+              facingMode: { exact: facingMode }
+            }
+          };
+
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          video.srcObject = stream;
+          currentStream = stream;
+        } catch (err) {
+          console.error("Error accessing camera:", err);
+          
+          // If exact mode fails, try without 'exact' constraint
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: facingMode }
+            });
+            video.srcObject = stream;
+            currentStream = stream;
+          } catch (fallbackErr) {
+            alert(
+              "Could not access the camera. Please ensure your browser supports this feature."
+            );
+            console.error("Fallback error:", fallbackErr);
+          }
+        }
+      }
+
+      // Camera selector event listener
+      cameraSelector.addEventListener("change", () => {
+        startCamera(cameraSelector.value);
+      });
 
       function triggerFlash() {
         flash.classList.add("active");
         setTimeout(() => {
           flash.classList.remove("active");
         }, 100);
-      }
-
-      const video = document.getElementById("video");
-      const canvas = document.getElementById("canvas");
-      const button = document.getElementById("captureBtn");
-      const overlay = document.getElementById("overlay");
-      const countdownDisplay = document.getElementById("countdown");
-
-      // Request camera access-- front
-      async function startCamera() {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: "user" } }, // Use "user" for the front camera
-          });
-          video.srcObject = stream;
-        } catch (err) {
-          console.error("Error accessing camera:", err);
-          alert(
-            "Could not access the front camera. Please ensure your browser supports this feature."
-          );
-        }
       }
 
       // Countdown function
@@ -236,7 +301,8 @@
         });
       });
 
-      startCamera();
+      // Initialize with front camera
+      startCamera("user");
     </script>
   </body>
 </html>
